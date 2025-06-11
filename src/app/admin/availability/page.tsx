@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { getDynamicAvailabilityRules, resetAllDataForPrototyping } from "@/app/actions/schedule-manager";
 import type { PredefinedAvailabilityRules } from "@/app/actions/schedule-manager";
-import { RefreshCcw, AlertTriangle } from "lucide-react";
+import { RefreshCcw, AlertTriangle, Loader2 } from "lucide-react";
 
 export default function AdminAvailabilityPage() {
   const [rules, setRules] = useState<PredefinedAvailabilityRules>({});
