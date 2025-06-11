@@ -1,6 +1,8 @@
 
 'use server';
 
+import availabilityRulesData from '@/config/availability-rules.json';
+
 // Horários base de atendimento, se não houver regras específicas para o dia.
 const BASE_AVAILABLE_TIMES = ["09:00", "10:00", "11:00", "14:00", "15:00", "16:00", "17:00"];
 
@@ -9,23 +11,10 @@ interface PredefinedAvailabilityRules {
 }
 
 // ##########################################################################
-// ## DEFINA SUAS REGRAS DE INDISPONIBILIDADE/DISPONIBILIDADE ESPECIAL AQUI ##
+// ## AS REGRAS DE INDISPONIBILIDADE/DISPONIBILIDADE ESPECIAL               ##
+// ## AGORA SÃO LIDAS DE src/config/availability-rules.json                ##
 // ##########################################################################
-// Formato da data: 'YYYY-MM-DD'
-// Para bloquear um dia inteiro: 'YYYY-MM-DD': 'UNAVAILABLE'
-// Para definir horários específicos como os ÚNICOS disponíveis no dia: 'YYYY-MM-DD': ['HH:mm', 'HH:mm']
-// Se uma data não estiver aqui, todos os BASE_AVAILABLE_TIMES serão considerados disponíveis (sujeito a agendamentos já feitos).
-const PREDEFINED_AVAILABILITY_RULES: PredefinedAvailabilityRules = {
-  // Exemplo: Dia 23 de Junho de 2024 totalmente indisponível
-  // '2024-06-23': 'UNAVAILABLE',
-
-  // Exemplo: Dia 27 de Junho de 2024 disponível apenas às 14:00 e 15:00
-  // '2024-06-27': ['14:00', '15:00'],
-
-  // Adicione suas regras personalizadas abaixo:
-  // 'SUA_DATA_AQUI': 'UNAVAILABLE',
-  // 'OUTRA_DATA_AQUI': ['SEU_HORARIO_1', 'SEU_HORARIO_2'],
-};
+const PREDEFINED_AVAILABILITY_RULES: PredefinedAvailabilityRules = (availabilityRulesData as any).PREDEFINED_AVAILABILITY_RULES || {};
 // ##########################################################################
 
 // Simulação de armazenamento em memória para horários agendados
@@ -102,5 +91,6 @@ export async function attemptToBookSlot(dateISO: string, time: string): Promise<
 export async function resetBookedSlots(): Promise<void> {
   // console.log('[ScheduleManager] Resetting all booked slots.');
   bookedSlots = {};
-  // PREDEFINED_AVAILABILITY_RULES não são resetadas aqui pois são constantes no código.
+  // PREDEFINED_AVAILABILITY_RULES são lidas do JSON, então não são resetadas aqui.
 }
+
