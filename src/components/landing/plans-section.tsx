@@ -130,7 +130,7 @@ export function PlansSection() {
                 ${!isMobile ? 'md:hover:shadow-primary/40 transform md:hover:-translate-y-2' : ''}
                 ${isMobile ? "flex-shrink-0 w-[85vw] sm:w-[320px] snap-center" : ""}
                 ${plan.featured
-                  ? `border-2 border-primary ${isMobile ? 'bg-card/70 backdrop-blur-sm' : 'bg-primary/5 glassmorphism-card-darker'}`
+                  ? `border-2 border-primary ${isMobile ? 'bg-card/70 backdrop-blur-sm' : 'bg-primary/5 backdrop-blur-lg'}`
                   : 'bg-card/70 backdrop-blur-sm border-border/30'
                 }
               `}
