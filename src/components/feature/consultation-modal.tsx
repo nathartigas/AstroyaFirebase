@@ -37,6 +37,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Briefcase, CalendarIcon, Building, Globe, Target, CheckSquare, Rocket, Clock } from "lucide-react";
 import { cn } from '@/lib/utils';
+import { sendConsultationEmailAction } from '@/app/actions/send-consultation-email';
 
 const availableTimes = [
   "09:00", "10:00", "11:00", "14:00", "15:00", "16:00", "17:00"
@@ -57,7 +58,7 @@ const consultationFormSchema = z.object({
   path: ["serviceLandingPage"],
 });
 
-type ConsultationFormValues = z.infer<typeof consultationFormSchema>;
+export type ConsultationFormValues = z.infer<typeof consultationFormSchema>;
 
 interface ConsultationModalProps {
   children: ReactNode;
@@ -83,15 +84,34 @@ export function ConsultationModal({ children, open, onOpenChange }: Consultation
   });
 
   async function onSubmit(values: ConsultationFormValues) {
-    console.log("Consultation Form Submitted:", values);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    toast({
-      title: "Agendamento Solicitado!",
-      description: "Sua solicitação de consultoria foi enviada. Entraremos em contato em breve!",
-      variant: "default",
-    });
-    form.reset();
-    onOpenChange(false);
+    form.control.disabled = true; // Disable form while submitting
+    try {
+      const result = await sendConsultationEmailAction(values);
+      if (result.success) {
+        toast({
+          title: "Agendamento Solicitado!",
+          description: result.message,
+          variant: "default",
+        });
+        form.reset();
+        onOpenChange(false);
+      } else {
+        toast({
+          title: "Erro no Agendamento",
+          description: result.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error submitting consultation:", error);
+      toast({
+        title: "Erro Inesperado",
+        description: "Ocorreu um erro ao processar sua solicitação. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+        form.control.disabled = false; // Re-enable form
+    }
   }
 
   return (
@@ -270,7 +290,7 @@ export function ConsultationModal({ children, open, onOpenChange }: Consultation
 
             <DialogFooter className="pt-4">
               <DialogClose asChild>
-                <Button type="button" variant="outline" className="w-full sm:w-auto">
+                <Button type="button" variant="outline" className="w-full sm:w-auto" disabled={form.formState.isSubmitting}>
                   Cancelar
                 </Button>
               </DialogClose>
