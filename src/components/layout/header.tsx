@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Menu, X, CalendarCheck } from "lucide-react";
+import { Menu, X, CalendarCheck, Settings } from "lucide-react"; // Adicionado Settings
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ConsultationModal } from '@/components/feature/consultation-modal';
 
@@ -15,6 +15,11 @@ const navLinks = [
   { href: "#plans", label: "Planos" },
   { href: "#portfolio", label: "Portfólio" },
   { href: "#contact", label: "Contato" },
+];
+
+// Adiciona o link de Admin apenas para fins de prototipagem, pode ser removido/condicionado depois
+const adminNavLinks = [
+    { href: "/admin/availability", label: "Admin Disponibilidade", icon: <Settings className="mr-2 h-4 w-4" /> }
 ];
 
 export function Header() {
@@ -69,6 +74,18 @@ export function Header() {
                       </Link>
                     </SheetClose>
                   ))}
+                  {/* Link de Admin para Mobile */}
+                  {adminNavLinks.map((link) => (
+                     <SheetClose asChild key={link.href}>
+                        <Link
+                            href={link.href}
+                            className="text-lg text-foreground/90 hover:text-primary transition-colors py-2 flex items-center"
+                            onClick={() => setIsSheetOpen(false)}
+                        >
+                            {link.icon} {link.label}
+                        </Link>
+                     </SheetClose>
+                  ))}
                 </nav>
               </SheetContent>
             </Sheet>
@@ -83,6 +100,16 @@ export function Header() {
                   className="text-sm lg:text-base text-foreground/80 hover:text-primary transition-colors"
                 >
                   {link.label}
+                </Link>
+              ))}
+               {/* Link de Admin para Desktop */}
+              {adminNavLinks.map((link) => (
+                <Link
+                    key={link.href}
+                    href={link.href}
+                    className="text-sm lg:text-base text-foreground/80 hover:text-primary transition-colors flex items-center"
+                >
+                    {link.icon} {link.label}
                 </Link>
               ))}
             </nav>
@@ -102,3 +129,4 @@ export function Header() {
     </header>
   );
 }
+

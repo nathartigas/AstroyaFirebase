@@ -5,7 +5,7 @@ import nodemailer from 'nodemailer';
 import type { ConsultationFormValues } from '@/components/feature/consultation-modal';
 import { format } from "date-fns";
 import { ptBR } from 'date-fns/locale';
-import { attemptToBookSlot, getUnavailableSlotsForDate } from './schedule-manager'; // Importar getUnavailableSlotsForDate
+import { attemptToBookSlot, getUnavailableSlotsForDate } from './schedule-manager';
 
 // Função para formatar data e hora para o padrão ICS (YYYYMMDDTHHmmssZ)
 function formatDateToICS(date: Date, time: string): string {
@@ -91,27 +91,29 @@ export async function sendConsultationEmailAction(data: ConsultationFormValues) 
     preferredTime,
   } = data;
 
+  // console.log(`EMAIL_SERVER_USER is defined: ${!!process.env.EMAIL_SERVER_USER}`);
+  // console.log(`EMAIL_SERVER_PASSWORD is defined: ${!!process.env.EMAIL_SERVER_PASSWORD}`);
+  // console.log(`EMAIL_TO_ADDRESS is defined: ${!!process.env.EMAIL_TO_ADDRESS}`);
+  // console.log(`EMAIL_SERVER_HOST is defined: ${!!process.env.EMAIL_SERVER_HOST}`);
+  // console.log(`EMAIL_SERVER_PORT is defined: ${!!process.env.EMAIL_SERVER_PORT}`);
+  // console.log(`EMAIL_SERVER_SECURE is defined: ${!!process.env.EMAIL_SERVER_SECURE}`);
+  // console.log(`EMAIL_FROM_ADDRESS is defined: ${!!process.env.EMAIL_FROM_ADDRESS}`);
+
   if (!process.env.EMAIL_SERVER_USER || !process.env.EMAIL_SERVER_PASSWORD || !process.env.EMAIL_TO_ADDRESS || !process.env.EMAIL_SERVER_HOST) {
-    // console.log(`EMAIL_SERVER_USER is defined: ${!!process.env.EMAIL_SERVER_USER}`);
-    // console.log(`EMAIL_SERVER_PASSWORD is defined: ${!!process.env.EMAIL_SERVER_PASSWORD}`);
-    // console.log(`EMAIL_TO_ADDRESS is defined: ${!!process.env.EMAIL_TO_ADDRESS}`);
-    // console.log(`EMAIL_SERVER_HOST is defined: ${!!process.env.EMAIL_SERVER_HOST}`);
-    // console.log(`EMAIL_SERVER_PORT is defined: ${!!process.env.EMAIL_SERVER_PORT}`);
-    // console.log(`EMAIL_SERVER_SECURE is defined: ${!!process.env.EMAIL_SERVER_SECURE}`);
-    // console.log(`EMAIL_FROM_ADDRESS is defined: ${!!process.env.EMAIL_FROM_ADDRESS}`);
     return { success: false, message: 'Serviço de e-mail não configurado no servidor. Contate o administrador.' };
   }
 
   const transporter = nodemailer.createTransport({
     host: process.env.EMAIL_SERVER_HOST,
     port: Number(process.env.EMAIL_SERVER_PORT || 587),
-    secure: process.env.EMAIL_SERVER_SECURE === 'true',
+    secure: process.env.EMAIL_SERVER_SECURE === 'true', // secure via porta 465, false para 587 (STARTTLS)
     auth: {
       user: process.env.EMAIL_SERVER_USER,
       pass: process.env.EMAIL_SERVER_PASSWORD,
     },
     tls: {
-        rejectUnauthorized: process.env.NODE_ENV === 'production'
+        // não falhar em certificados auto-assinados se NODE_ENV não for 'production'
+        rejectUnauthorized: process.env.NODE_ENV === 'production' 
     }
   });
 
@@ -204,17 +206,14 @@ export async function sendConsultationEmailAction(data: ConsultationFormValues) 
 
   try {
     const dateStr = format(preferredDate, 'yyyy-MM-dd');
-    // Verificar novamente se o slot está disponível antes de enviar (concorrência)
     const currentUnavailableSlots = await getUnavailableSlotsForDate(dateStr);
     if (currentUnavailableSlots.includes(preferredTime)) {
       return { success: false, message: 'Este horário foi reservado ou tornou-se indisponível enquanto você preenchia o formulário. Por favor, escolha outro.' };
     }
     
-    // Tenta reservar o slot (se disponível conforme regras e não já nos bookedSlots)
     const slotBookedSuccessfully = await attemptToBookSlot(dateStr, preferredTime);
 
     if (!slotBookedSuccessfully) {
-      // Esta mensagem pode ser um pouco redundante se a checagem acima pegar, mas é uma salvaguarda.
       return { success: false, message: 'Este horário não está disponível para agendamento. Por favor, tente outro.' };
     }
 
@@ -223,15 +222,20 @@ export async function sendConsultationEmailAction(data: ConsultationFormValues) 
     
     return { success: true, message: 'Sua solicitação foi enviada! Enviamos um e-mail de confirmação com um convite de calendário para você.' };
   } catch (error: any) {
-    console.error("Falha ao enviar e-mail de consultoria:", error);
+    // console.error("Falha ao enviar e-mail de consultoria:", error);
     let detailedMessage = 'Houve um problema ao enviar sua solicitação. Por favor, tente novamente ou entre em contato diretamente.';
     
     if (error.responseCode) {
       detailedMessage += ` (Código do erro SMTP: ${error.responseCode})`;
-    } else if (error.code) {
+    } else if (error.code) { // Códigos de erro do Nodemailer (ex: EAUTH, ECONNRESET)
         detailedMessage += ` (Código Nodemailer: ${error.code})`;
     }
+
+    // Não "desfaça" o agendamento em memória aqui, pois o agendamento pode ter sido bem sucedido
+    // mas o envio de email falhou. A política de como lidar com isso pode variar.
+    // Por enquanto, o slot permanecerá "reservado" em memória.
 
     return { success: false, message: detailedMessage };
   }
 }
+
