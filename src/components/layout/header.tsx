@@ -30,6 +30,17 @@ export function Header() {
         </Link>
         {isMobile ? (
           <div className="flex items-center gap-2">
+            <ConsultationModal open={isConsultationModalOpen} onOpenChange={setIsConsultationModalOpen}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-primary hover:text-primary/90"
+                onClick={() => setIsConsultationModalOpen(true)}
+              >
+                <CalendarCheck className="h-6 w-6" />
+                <span className="sr-only">Agendar Consultoria</span>
+              </Button>
+            </ConsultationModal>
             <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon">
@@ -43,7 +54,6 @@ export function Header() {
                     <Link href="/" className="text-2xl font-bold font-headline gradient-text-animated" onClick={() => setIsSheetOpen(false)}>
                         Astroya
                     </Link>
-                    {/* O SheetClose aqui foi removido para evitar o "X" duplicado, pois SheetContent já tem um */}
                   </div>
                   <SheetTitle className="sr-only">Menu Principal</SheetTitle>
                 </SheetHeader>
@@ -62,17 +72,6 @@ export function Header() {
                 </nav>
               </SheetContent>
             </Sheet>
-            <ConsultationModal open={isConsultationModalOpen} onOpenChange={setIsConsultationModalOpen}>
-              <Button 
-                variant="ghost" // Mantido ghost para um visual limpo de ícone, mas a cor primária deve destacar
-                size="icon" 
-                className="text-primary hover:text-primary/90" // Ajustado hover e removido margin, o gap do flex container cuida disso
-                onClick={() => setIsConsultationModalOpen(true)}
-              >
-                <CalendarCheck className="h-6 w-6" />
-                <span className="sr-only">Agendar Consultoria</span>
-              </Button>
-            </ConsultationModal>
           </div>
         ) : (
           <div className="flex items-center space-x-3 lg:space-x-4">
@@ -88,9 +87,9 @@ export function Header() {
               ))}
             </nav>
             <ConsultationModal open={isConsultationModalOpen} onOpenChange={setIsConsultationModalOpen}>
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 className="border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-all"
                 onClick={() => setIsConsultationModalOpen(true)}
               >
