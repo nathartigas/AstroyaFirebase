@@ -1,6 +1,8 @@
+
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
+import { WhatsAppButton } from '@/components/feature/whatsapp-button'; // Added import
 
 export const metadata: Metadata = {
   title: 'Astroya: Landing Pages de Alto Impacto',
@@ -23,6 +25,7 @@ export default function RootLayout({
       <body className="font-body antialiased min-h-screen flex flex-col bg-background text-foreground">
         {children}
         <Toaster />
+        <WhatsAppButton /> {/* Added WhatsApp button */}
       </body>
     </html>
   );
