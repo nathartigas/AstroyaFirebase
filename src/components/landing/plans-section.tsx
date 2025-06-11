@@ -77,7 +77,7 @@ export function PlansSection() {
       </div>
       <div className={
         isMobile
-          ? "flex overflow-x-auto space-x-6 py-4 snap-x snap-mandatory"
+          ? "flex overflow-x-auto space-x-6 py-4 snap-x snap-mandatory scroll-smooth scroll-px-[max(0px,calc((100vw-2rem-85vw)/2))]"
           : "grid md:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch"
       }>
         {plans.map((plan, index) => (
