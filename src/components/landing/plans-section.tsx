@@ -1,8 +1,12 @@
+
+"use client";
+
 import { SectionWrapper } from "./section-wrapper";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, ArrowRight, Star, Rocket, Sparkles } from "lucide-react";
 import Link from "next/link";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const plans = [
   {
@@ -61,6 +65,8 @@ const plans = [
 ];
 
 export function PlansSection() {
+  const isMobile = useIsMobile();
+
   return (
     <SectionWrapper id="plans" className="bg-background">
       <div className="text-center mb-16">
@@ -69,13 +75,20 @@ export function PlansSection() {
           Temos a opção perfeita para cada estágio da sua jornada. Todos os planos incluem nossa expertise e o compromisso com o seu sucesso.
         </p>
       </div>
-      <div className="grid lg:grid-cols-3 gap-8 items-stretch">
+      <div className={
+        isMobile
+          ? "flex overflow-x-auto space-x-6 py-4 snap-x snap-mandatory"
+          : "grid md:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch"
+      }>
         {plans.map((plan, index) => (
           <Card
             key={index}
-            className={`flex flex-col rounded-xl shadow-2xl transition-all duration-300 hover:shadow-primary/40
+            className={`
+              flex flex-col rounded-xl shadow-2xl transition-all duration-300 hover:shadow-primary/40
               ${plan.featured ? "border-2 border-primary bg-primary/5 glassmorphism-card-darker" : "bg-card/70 backdrop-blur-sm border-border/30"}
-              transform hover:-translate-y-2`}
+              transform hover:-translate-y-2
+              ${isMobile ? "flex-shrink-0 w-[85vw] sm:w-[320px] snap-center" : ""}
+            `}
           >
             <CardHeader className="text-center p-6">
               {plan.icon}
