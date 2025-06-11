@@ -87,23 +87,27 @@ export function PlansSection() {
         </p>
       </div>
 
-      <div className="flex items-center justify-center space-x-3 mb-10 md:mb-12">
-        <Label htmlFor="billing-cycle-switch" className={`text-lg font-medium transition-colors ${billingCycle === 'monthly' ? 'text-primary' : 'text-foreground/70'}`}>
-          Mensal
-        </Label>
-        <Switch
-          id="billing-cycle-switch"
-          checked={billingCycle === 'annual'}
-          onCheckedChange={(checked) => setBillingCycle(checked ? 'annual' : 'monthly')}
-          className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
-        />
-        <Label htmlFor="billing-cycle-switch" className={`text-lg font-medium transition-colors ${billingCycle === 'annual' ? 'text-primary' : 'text-foreground/70'}`}>
-          Anual
-        </Label>
+      <div className="flex flex-col items-center mb-10 md:mb-12">
+        <div className="flex items-center justify-center space-x-3">
+          <Label htmlFor="billing-cycle-switch" className={`text-lg font-medium transition-colors ${billingCycle === 'monthly' ? 'text-primary' : 'text-foreground/70'}`}>
+            Mensal
+          </Label>
+          <Switch
+            id="billing-cycle-switch"
+            checked={billingCycle === 'annual'}
+            onCheckedChange={(checked) => setBillingCycle(checked ? 'annual' : 'monthly')}
+            className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
+          />
+          <Label htmlFor="billing-cycle-switch" className={`text-lg font-medium transition-colors ${billingCycle === 'annual' ? 'text-primary' : 'text-foreground/70'}`}>
+            Anual
+          </Label>
+        </div>
         {billingCycle === 'annual' && (
-          <Badge variant="secondary" className="ml-2 text-sm bg-secondary/20 text-secondary border-secondary/50">
-            Economize 2 meses!
-          </Badge>
+          <div className="mt-2">
+            <Badge variant="secondary" className="text-sm bg-secondary/20 text-secondary border-secondary/50">
+              Economize 2 meses!
+            </Badge>
+          </div>
         )}
       </div>
 
@@ -123,7 +127,7 @@ export function PlansSection() {
               key={plan.id}
               className={`
                 flex flex-col rounded-xl shadow-2xl transition-all duration-300 
-                ${!isMobile ? 'md:hover:shadow-primary/40 transform hover:-translate-y-2' : ''}
+                ${!isMobile ? 'md:hover:shadow-primary/40 transform md:hover:-translate-y-2' : ''}
                 ${isMobile ? "flex-shrink-0 w-[85vw] sm:w-[320px] snap-center" : ""}
                 ${plan.featured
                   ? `border-2 border-primary ${isMobile ? 'bg-card/70 backdrop-blur-sm' : 'bg-primary/5 glassmorphism-card-darker'}`
@@ -138,7 +142,7 @@ export function PlansSection() {
                   <span className={`text-5xl font-bold ${plan.featured ? 'text-primary' : 'text-foreground'}`}>{displayPrice}</span>
                   <span className="text-lg text-muted-foreground">{displayPeriod}</span>
                 </div>
-                {billingCycle === 'annual' && plan.pricing.annual.discountBadge && plan.id !== "decolar_annual_explicit_badge" && (
+                {billingCycle === 'annual' && plan.pricing.annual.discountBadge && (
                    <Badge variant="outline" className="text-xs border-primary/50 text-primary bg-primary/10 mx-auto mt-1 mb-2">
                      {plan.pricing.annual.discountBadge}
                    </Badge>
@@ -171,4 +175,3 @@ export function PlansSection() {
     </SectionWrapper>
   );
 }
-
