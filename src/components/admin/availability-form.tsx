@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -25,14 +25,19 @@ const availabilityFormSchema = z.object({
   date: z.date({ required_error: "Data é obrigatória." }),
   ruleType: ruleTypeSchema,
   specificTimes: z.array(z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato HH:MM inválido"))
-    .optional()
-    .refine((times, ctx) => {
-      if (ctx.parent.ruleType === "SPECIFIC_TIMES" && (!times || times.length === 0)) {
-        return false;
-      }
-      return true;
-    }, { message: "Pelo menos um horário específico é necessário." }),
-});
+    .optional(),
+}).refine(
+  (data) => {
+    if (data.ruleType === "SPECIFIC_TIMES") {
+      return data.specificTimes && data.specificTimes.length > 0;
+    }
+    return true;
+  },
+  {
+    message: "Pelo menos um horário específico é necessário quando 'Horários Específicos Disponíveis' é selecionado.",
+    path: ["specificTimes"], // Associa a mensagem de erro ao campo specificTimes
+  }
+);
 
 type AvailabilityFormValues = z.infer<typeof availabilityFormSchema>;
 
@@ -64,6 +69,26 @@ export function AvailabilityForm({ onRuleAddedOrUpdated, initialRule }: Availabi
 
   const ruleType = form.watch("ruleType");
 
+  // Atualiza currentSpecificTimes e o valor do formulário quando initialRule muda (ao clicar em editar)
+  useEffect(() => {
+    if (initialRule) {
+      form.reset({
+        date: parseISO(initialRule.dateISO),
+        ruleType: initialRule.rule === 'UNAVAILABLE' ? 'UNAVAILABLE' : 'SPECIFIC_TIMES',
+        specificTimes: Array.isArray(initialRule.rule) ? initialRule.rule : [],
+      });
+      setCurrentSpecificTimes(Array.isArray(initialRule.rule) ? initialRule.rule : []);
+    } else {
+      form.reset({
+        date: new Date(),
+        ruleType: "UNAVAILABLE",
+        specificTimes: []
+      });
+      setCurrentSpecificTimes([]);
+    }
+  }, [initialRule, form]);
+
+
   const handleAddTime = () => {
     if (/^([01]\d|2[0-3]):([0-5]\d)$/.test(newTimeInput) && !currentSpecificTimes.includes(newTimeInput)) {
       const updatedTimes = [...currentSpecificTimes, newTimeInput].sort();
@@ -89,25 +114,15 @@ export function AvailabilityForm({ onRuleAddedOrUpdated, initialRule }: Availabi
     if (values.ruleType === "UNAVAILABLE") {
       ruleToSend = "UNAVAILABLE";
     } else {
-      ruleToSend = values.specificTimes || [];
-      if (ruleToSend.length === 0) {
-        toast({ title: "Erro", description: "Se 'Horários Específicos' é selecionado, adicione pelo menos um horário.", variant: "destructive" });
-        setIsLoading(false);
-        return;
-      }
+      // A validação Zod já garante que specificTimes existe e tem itens se ruleType for SPECIFIC_TIMES
+      ruleToSend = values.specificTimes!; 
     }
     
     const result = await updateDynamicAvailabilityRule(dateISO, ruleToSend);
 
     if (result.success) {
       toast({ title: "Sucesso", description: result.message, variant: "default" });
-      onRuleAddedOrUpdated();
-      form.reset({
-        date: new Date(),
-        ruleType: "UNAVAILABLE",
-        specificTimes: []
-      });
-      setCurrentSpecificTimes([]);
+      onRuleAddedOrUpdated(); // Chama o callback para atualizar a lista e limpar o formulário de edição
     } else {
       toast({ title: "Erro", description: result.message, variant: "destructive" });
     }
@@ -116,7 +131,7 @@ export function AvailabilityForm({ onRuleAddedOrUpdated, initialRule }: Availabi
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 p-6 border rounded-lg shadow-md bg-card">
-      <h3 className="text-xl font-semibold text-primary">Adicionar/Editar Regra de Disponibilidade</h3>
+      <h3 className="text-xl font-semibold text-primary">{initialRule ? "Editar Regra" : "Adicionar Nova Regra"}</h3>
       
       <Controller
         name="date"
@@ -145,6 +160,7 @@ export function AvailabilityForm({ onRuleAddedOrUpdated, initialRule }: Availabi
                   }}
                   initialFocus
                   locale={ptBR}
+                  disabled={(date) => date < new Date(new Date().setDate(new Date().getDate() -1)) }
                 />
               </PopoverContent>
             </Popover>
@@ -162,7 +178,17 @@ export function AvailabilityForm({ onRuleAddedOrUpdated, initialRule }: Availabi
                 {field.value === 'UNAVAILABLE' ? <Ban className="mr-2 h-4 w-4" /> : <ListChecks className="mr-2 h-4 w-4" />}
                 Tipo de Regra
             </Label>
-            <Select onValueChange={field.onChange} defaultValue={field.value}>
+            <Select 
+              onValueChange={(value) => {
+                field.onChange(value);
+                // Se mudar para UNAVAILABLE, limpar specificTimes para evitar erro de validação fantasma
+                if (value === 'UNAVAILABLE') {
+                  setCurrentSpecificTimes([]);
+                  form.setValue('specificTimes', [], { shouldValidate: true });
+                }
+              }} 
+              value={field.value} // Use value em vez de defaultValue para controle completo
+            >
               <SelectTrigger id="ruleType-select">
                 <SelectValue placeholder="Selecione o tipo de regra" />
               </SelectTrigger>
@@ -190,6 +216,7 @@ export function AvailabilityForm({ onRuleAddedOrUpdated, initialRule }: Availabi
                     <PlusCircle className="mr-2 h-4 w-4"/> Adicionar Horário
                 </Button>
             </div>
+            {/* O erro para specificTimes agora será exibido aqui devido ao path no refine */}
             {form.formState.errors.specificTimes && <p className="text-sm text-destructive">{form.formState.errors.specificTimes.message}</p>}
             
             {currentSpecificTimes.length > 0 && (
@@ -207,7 +234,9 @@ export function AvailabilityForm({ onRuleAddedOrUpdated, initialRule }: Availabi
                     </ul>
                 </div>
             )}
-            {currentSpecificTimes.length === 0 && <p className="text-sm text-muted-foreground">Nenhum horário específico adicionado.</p>}
+            {currentSpecificTimes.length === 0 && ruleType === "SPECIFIC_TIMES" && (
+                <p className="text-sm text-muted-foreground">Adicione pelo menos um horário.</p>
+            )}
         </div>
       )}
 
