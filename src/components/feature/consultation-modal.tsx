@@ -33,9 +33,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Briefcase, CalendarIcon, Building, Globe, Target, CheckSquare, Rocket } from "lucide-react";
+import { Briefcase, CalendarIcon, Building, Globe, Target, CheckSquare, Rocket, Clock } from "lucide-react";
 import { cn } from '@/lib/utils';
+
+const availableTimes = [
+  "09:00", "10:00", "11:00", "14:00", "15:00", "16:00", "17:00"
+];
 
 const consultationFormSchema = z.object({
   companyName: z.string().min(2, { message: "Nome da empresa deve ter pelo menos 2 caracteres." }),
@@ -46,9 +51,10 @@ const consultationFormSchema = z.object({
   serviceSEO: z.boolean().optional(),
   serviceMaintenance: z.boolean().optional(),
   preferredDate: z.date({ required_error: "Por favor, selecione uma data." }),
+  preferredTime: z.string({ required_error: "Por favor, selecione um horário."}),
 }).refine(data => data.serviceLandingPage || data.serviceSEO || data.serviceMaintenance, {
   message: "Selecione ao menos um serviço de interesse.",
-  path: ["serviceLandingPage"], // Path to display error; can be adjusted
+  path: ["serviceLandingPage"],
 });
 
 type ConsultationFormValues = z.infer<typeof consultationFormSchema>;
@@ -78,7 +84,6 @@ export function ConsultationModal({ children, open, onOpenChange }: Consultation
 
   async function onSubmit(values: ConsultationFormValues) {
     console.log("Consultation Form Submitted:", values);
-    // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
     toast({
       title: "Agendamento Solicitado!",
@@ -86,7 +91,7 @@ export function ConsultationModal({ children, open, onOpenChange }: Consultation
       variant: "default",
     });
     form.reset();
-    onOpenChange(false); // Close modal on successful submission
+    onOpenChange(false);
   }
 
   return (
@@ -193,50 +198,76 @@ export function ConsultationModal({ children, open, onOpenChange }: Consultation
                <FormMessage>{form.formState.errors.serviceLandingPage?.message}</FormMessage>
             </FormItem>
 
-            <FormField
-              control={form.control}
-              name="preferredDate"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel className="flex items-center text-foreground/90"><CalendarIcon className="mr-2 h-4 w-4 text-primary" />Data Preferida para Consultoria</FormLabel>
-                  <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-                    <PopoverTrigger asChild>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="preferredDate"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel className="flex items-center text-foreground/90"><CalendarIcon className="mr-2 h-4 w-4 text-primary" />Data Preferida</FormLabel>
+                    <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-full pl-3 text-left font-normal bg-input text-foreground placeholder:text-muted-foreground rounded-md border-border/50 hover:bg-accent/50 focus:border-primary",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, "PPP", { locale: ptBR })
+                            ) : (
+                              <span>Escolha uma data</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={(date: Date | undefined) => {
+                             setCalendarOpen(false); 
+                             field.onChange(date);
+                          }}
+                          disabled={(date) => date < new Date(new Date().setDate(new Date().getDate() -1)) }
+                          initialFocus
+                          locale={ptBR}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="preferredTime"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center text-foreground/90"><Clock className="mr-2 h-4 w-4 text-primary" />Horário Preferido</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-full pl-3 text-left font-normal bg-input text-foreground placeholder:text-muted-foreground rounded-md border-border/50 hover:bg-accent/50 focus:border-primary",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value ? (
-                            format(field.value, "PPP", { locale: ptBR })
-                          ) : (
-                            <span>Escolha uma data</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
+                        <SelectTrigger className="bg-input text-foreground placeholder:text-muted-foreground rounded-md border-border/50 focus:border-primary">
+                          <SelectValue placeholder="Selecione um horário" />
+                        </SelectTrigger>
                       </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={(date: Date | undefined) => {
-                           // Try to close the popover first in case onChange causes issues on mobile
-                           setCalendarOpen(false); 
-                           field.onChange(date);
-                        }}
-                        disabled={(date) => date < new Date(new Date().setDate(new Date().getDate() -1)) } // Disable past dates
-                        initialFocus
-                        locale={ptBR}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                      <SelectContent className="bg-popover text-popover-foreground">
+                        {availableTimes.map(time => (
+                          <SelectItem key={time} value={time}>
+                            {time}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
             <DialogFooter className="pt-4">
               <DialogClose asChild>
                 <Button type="button" variant="outline" className="w-full sm:w-auto">
@@ -253,4 +284,3 @@ export function ConsultationModal({ children, open, onOpenChange }: Consultation
     </Dialog>
   );
 }
-
