@@ -38,9 +38,9 @@ import { useToast } from "@/hooks/use-toast";
 import { Briefcase, CalendarIcon, Building, Globe, Target, CheckSquare, Rocket, Clock, Mail, User, Loader2 } from "lucide-react";
 import { cn } from '@/lib/utils';
 import { sendConsultationEmailAction } from '@/app/actions/send-consultation-email';
-import { getBookedSlots } from '@/app/actions/schedule-manager';
+import { getUnavailableSlotsForDate } from '@/app/actions/schedule-manager'; // Atualizado para getUnavailableSlotsForDate
 
-const availableTimes = [
+const availableTimesBase = [ // Horários base que podem ser oferecidos
   "09:00", "10:00", "11:00", "14:00", "15:00", "16:00", "17:00"
 ];
 
@@ -74,6 +74,8 @@ export function ConsultationModal({ children, open, onOpenChange }: Consultation
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [loadingTimes, setLoadingTimes] = useState(false);
   const [unavailableTimesForSelectedDate, setUnavailableTimesForSelectedDate] = useState<string[]>([]);
+  const [actuallyAvailableTimes, setActuallyAvailableTimes] = useState<string[]>(availableTimesBase);
+
 
   const form = useForm<ConsultationFormValues>({
     resolver: zodResolver(consultationFormSchema),
@@ -93,19 +95,35 @@ export function ConsultationModal({ children, open, onOpenChange }: Consultation
   const selectedDate = form.watch("preferredDate");
 
   useEffect(() => {
-    async function fetchUnavailableTimes() {
+    async function fetchAndSetTimesForDate() {
       if (selectedDate) {
         setLoadingTimes(true);
+        form.setValue('preferredTime', ''); // Limpa horário selecionado ao mudar data
         try {
           const dateStr = format(selectedDate, 'yyyy-MM-dd');
-          const booked = await getBookedSlots(dateStr);
-          setUnavailableTimesForSelectedDate(booked);
+          const unavailableSlots = await getUnavailableSlotsForDate(dateStr);
+          setUnavailableTimesForSelectedDate(unavailableSlots);
+
+          // Determina os horários realmente disponíveis
+          const currentAvailable = availableTimesBase.filter(time => !unavailableSlots.includes(time));
+          setActuallyAvailableTimes(currentAvailable);
+
+          if (currentAvailable.length === 0 && availableTimesBase.length > 0) {
+            toast({
+              title: "Nenhum horário disponível",
+              description: "Não há horários disponíveis para a data selecionada. Por favor, escolha outra data.",
+              variant: "default", // ou "destructive" se preferir um alerta mais forte
+            });
+          }
+
+
         } catch (error) {
           console.error("Erro ao buscar horários: ", error);
-          setUnavailableTimesForSelectedDate([]); // Em caso de erro, assume todos disponíveis
+          setUnavailableTimesForSelectedDate([]); 
+          setActuallyAvailableTimes(availableTimesBase);
           toast({
             title: "Erro ao carregar horários",
-            description: "Não foi possível verificar os horários disponíveis. Tente novamente.",
+            description: "Não foi possível verificar os horários. Tente novamente.",
             variant: "destructive",
           });
         } finally {
@@ -113,27 +131,29 @@ export function ConsultationModal({ children, open, onOpenChange }: Consultation
         }
       } else {
         setUnavailableTimesForSelectedDate([]);
+        setActuallyAvailableTimes(availableTimesBase);
       }
     }
-    fetchUnavailableTimes();
-  }, [selectedDate, toast]);
+    fetchAndSetTimesForDate();
+  }, [selectedDate, toast, form]);
 
 
   async function onSubmit(values: ConsultationFormValues) {
     form.control.disabled = true;
-    setLoadingTimes(true); // Reutilizar para indicar processamento geral
+    setLoadingTimes(true);
 
     try {
-      // Verificar novamente se o slot está disponível antes de enviar
       const dateStr = format(values.preferredDate, 'yyyy-MM-dd');
-      const currentBookedSlots = await getBookedSlots(dateStr);
-      if (currentBookedSlots.includes(values.preferredTime)) {
+      const currentUnavailableSlots = await getUnavailableSlotsForDate(dateStr);
+      if (currentUnavailableSlots.includes(values.preferredTime)) {
         toast({
           title: "Horário Indisponível",
-          description: "Este horário foi reservado enquanto você preenchia o formulário. Por favor, escolha outro.",
+          description: "Este horário foi reservado ou tornou-se indisponível. Por favor, escolha outro.",
           variant: "destructive",
         });
-        setUnavailableTimesForSelectedDate(currentBookedSlots); // Atualiza a lista de indisponíveis
+        setUnavailableTimesForSelectedDate(currentUnavailableSlots);
+        const currentAvailable = availableTimesBase.filter(time => !currentUnavailableSlots.includes(time));
+        setActuallyAvailableTimes(currentAvailable);
         form.control.disabled = false;
         setLoadingTimes(false);
         return;
@@ -147,7 +167,8 @@ export function ConsultationModal({ children, open, onOpenChange }: Consultation
           variant: "default",
         });
         form.reset();
-        setUnavailableTimesForSelectedDate([]); // Limpa após sucesso
+        setUnavailableTimesForSelectedDate([]); 
+        setActuallyAvailableTimes(availableTimesBase);
         onOpenChange(false);
       } else {
         toast({
@@ -334,8 +355,6 @@ export function ConsultationModal({ children, open, onOpenChange }: Consultation
                           onSelect={(date: Date | undefined) => {
                              if (date) {
                                 field.onChange(date);
-                                // Resetar horário selecionado ao mudar a data
-                                form.setValue('preferredTime', ''); 
                              }
                              setCalendarOpen(false); 
                           }}
@@ -361,25 +380,35 @@ export function ConsultationModal({ children, open, onOpenChange }: Consultation
                     </FormLabel>
                     <Select 
                       onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                      value={field.value} // Controlar valor para reset
-                      disabled={!selectedDate || loadingTimes}
+                      value={field.value} 
+                      disabled={!selectedDate || loadingTimes || actuallyAvailableTimes.length === 0}
                     >
                       <FormControl>
                         <SelectTrigger className="bg-input text-foreground placeholder:text-muted-foreground rounded-md border-border/50 focus:border-primary">
-                          <SelectValue placeholder={!selectedDate ? "Selecione uma data primeiro" : (loadingTimes ? "Carregando horários..." : "Selecione um horário")} />
+                          <SelectValue placeholder={
+                              !selectedDate ? "Selecione uma data primeiro" 
+                            : loadingTimes ? "Carregando horários..." 
+                            : (actuallyAvailableTimes.length === 0 ? "Nenhum horário disponível" : "Selecione um horário")
+                          } />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent className="bg-popover text-popover-foreground">
-                        {availableTimes.map(time => (
-                          <SelectItem 
-                            key={time} 
-                            value={time}
-                            disabled={unavailableTimesForSelectedDate.includes(time)}
-                          >
-                            {time}{unavailableTimesForSelectedDate.includes(time) ? " (Indisponível)" : ""}
-                          </SelectItem>
-                        ))}
+                        {actuallyAvailableTimes.length > 0 ? (
+                            actuallyAvailableTimes.map(time => (
+                              <SelectItem 
+                                key={time} 
+                                value={time}
+                                // A lógica de desabilitar já está em `actuallyAvailableTimes`
+                              >
+                                {time}
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <SelectItem value="no-slots" disabled>
+                              Nenhum horário disponível
+                            </SelectItem>
+                          )
+                        }
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -397,7 +426,7 @@ export function ConsultationModal({ children, open, onOpenChange }: Consultation
               <Button 
                 type="submit" 
                 className="w-full sm:w-auto gradient-bg text-primary-foreground font-semibold hover:opacity-90" 
-                disabled={form.formState.isSubmitting || loadingTimes}
+                disabled={form.formState.isSubmitting || loadingTimes || !form.formState.isValid || actuallyAvailableTimes.length === 0}
               >
                 {(form.formState.isSubmitting || loadingTimes) ? (
                   <>

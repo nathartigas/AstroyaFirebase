@@ -5,7 +5,7 @@ import nodemailer from 'nodemailer';
 import type { ConsultationFormValues } from '@/components/feature/consultation-modal';
 import { format } from "date-fns";
 import { ptBR } from 'date-fns/locale';
-import { attemptToBookSlot } from './schedule-manager'; // Importar a função de reserva
+import { attemptToBookSlot, getUnavailableSlotsForDate } from './schedule-manager'; // Importar getUnavailableSlotsForDate
 
 // Função para formatar data e hora para o padrão ICS (YYYYMMDDTHHmmssZ)
 function formatDateToICS(date: Date, time: string): string {
@@ -92,7 +92,6 @@ export async function sendConsultationEmailAction(data: ConsultationFormValues) 
   } = data;
 
   if (!process.env.EMAIL_SERVER_USER || !process.env.EMAIL_SERVER_PASSWORD || !process.env.EMAIL_TO_ADDRESS || !process.env.EMAIL_SERVER_HOST) {
-    // console.error("Variáveis de ambiente para envio de e-mail não configuradas.");
     // console.log(`EMAIL_SERVER_USER is defined: ${!!process.env.EMAIL_SERVER_USER}`);
     // console.log(`EMAIL_SERVER_PASSWORD is defined: ${!!process.env.EMAIL_SERVER_PASSWORD}`);
     // console.log(`EMAIL_TO_ADDRESS is defined: ${!!process.env.EMAIL_TO_ADDRESS}`);
@@ -205,12 +204,18 @@ export async function sendConsultationEmailAction(data: ConsultationFormValues) 
 
   try {
     const dateStr = format(preferredDate, 'yyyy-MM-dd');
+    // Verificar novamente se o slot está disponível antes de enviar (concorrência)
+    const currentUnavailableSlots = await getUnavailableSlotsForDate(dateStr);
+    if (currentUnavailableSlots.includes(preferredTime)) {
+      return { success: false, message: 'Este horário foi reservado ou tornou-se indisponível enquanto você preenchia o formulário. Por favor, escolha outro.' };
+    }
+    
+    // Tenta reservar o slot (se disponível conforme regras e não já nos bookedSlots)
     const slotBookedSuccessfully = await attemptToBookSlot(dateStr, preferredTime);
 
     if (!slotBookedSuccessfully) {
-      // Este caso idealmente não deveria acontecer se a verificação no cliente foi feita,
-      // mas é uma salvaguarda para concorrência.
-      return { success: false, message: 'Este horário foi reservado por outra pessoa. Por favor, tente outro.' };
+      // Esta mensagem pode ser um pouco redundante se a checagem acima pegar, mas é uma salvaguarda.
+      return { success: false, message: 'Este horário não está disponível para agendamento. Por favor, tente outro.' };
     }
 
     await transporter.sendMail(adminMailOptions);
