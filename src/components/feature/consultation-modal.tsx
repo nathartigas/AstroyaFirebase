@@ -35,7 +35,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Briefcase, CalendarIcon, Building, Globe, Target, CheckSquare, Rocket, Clock } from "lucide-react";
+import { Briefcase, CalendarIcon, Building, Globe, Target, CheckSquare, Rocket, Clock, Mail } from "lucide-react";
 import { cn } from '@/lib/utils';
 import { sendConsultationEmailAction } from '@/app/actions/send-consultation-email';
 
@@ -45,6 +45,7 @@ const availableTimes = [
 
 const consultationFormSchema = z.object({
   companyName: z.string().min(2, { message: "Nome da empresa deve ter pelo menos 2 caracteres." }),
+  clientEmail: z.string().email({ message: "Por favor, insira um e-mail válido." }),
   companyWebsite: z.string().url({ message: "Por favor, insira uma URL válida." }).optional().or(z.literal("")),
   mainChallenge: z.string().min(10, { message: "Descreva o desafio em pelo menos 10 caracteres." }).max(300, { message: "Máximo de 300 caracteres."}),
   targetAudience: z.string().min(5, { message: "Descreva o público-alvo em pelo menos 5 caracteres." }).max(200, { message: "Máximo de 200 caracteres."}),
@@ -74,6 +75,7 @@ export function ConsultationModal({ children, open, onOpenChange }: Consultation
     resolver: zodResolver(consultationFormSchema),
     defaultValues: {
       companyName: "",
+      clientEmail: "",
       companyWebsite: "",
       mainChallenge: "",
       targetAudience: "",
@@ -84,7 +86,7 @@ export function ConsultationModal({ children, open, onOpenChange }: Consultation
   });
 
   async function onSubmit(values: ConsultationFormValues) {
-    form.control.disabled = true; // Disable form while submitting
+    form.control.disabled = true; 
     try {
       const result = await sendConsultationEmailAction(values);
       if (result.success) {
@@ -110,7 +112,7 @@ export function ConsultationModal({ children, open, onOpenChange }: Consultation
         variant: "destructive",
       });
     } finally {
-        form.control.disabled = false; // Re-enable form
+        form.control.disabled = false; 
     }
   }
 
@@ -146,10 +148,24 @@ export function ConsultationModal({ children, open, onOpenChange }: Consultation
               />
               <FormField
                 control={form.control}
+                name="clientEmail"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center text-foreground/90"><Mail className="mr-2 h-4 w-4 text-primary" />Seu E-mail para Contato</FormLabel>
+                    <FormControl>
+                      <Input type="email" placeholder="seu.email@exemplo.com" {...field} className="bg-input text-foreground placeholder:text-muted-foreground rounded-md border-border/50 focus:border-primary"/>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+             <FormField
+                control={form.control}
                 name="companyWebsite"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center text-foreground/90"><Globe className="mr-2 h-4 w-4 text-primary" />Website (Opcional)</FormLabel>
+                    <FormLabel className="flex items-center text-foreground/90"><Globe className="mr-2 h-4 w-4 text-primary" />Website da Empresa (Opcional)</FormLabel>
                     <FormControl>
                       <Input placeholder="https://suaempresa.com.br" {...field} className="bg-input text-foreground placeholder:text-muted-foreground rounded-md border-border/50 focus:border-primary"/>
                     </FormControl>
@@ -157,7 +173,6 @@ export function ConsultationModal({ children, open, onOpenChange }: Consultation
                   </FormItem>
                 )}
               />
-            </div>
 
             <FormField
               control={form.control}
@@ -304,3 +319,5 @@ export function ConsultationModal({ children, open, onOpenChange }: Consultation
     </Dialog>
   );
 }
+
+    
