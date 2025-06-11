@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Menu, X, CalendarCheck, Briefcase } from "lucide-react";
+import { Menu, X, CalendarCheck } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ConsultationModal } from '@/components/feature/consultation-modal';
 
@@ -29,18 +29,7 @@ export function Header() {
           Astroya
         </Link>
         {isMobile ? (
-          <>
-            <ConsultationModal open={isConsultationModalOpen} onOpenChange={setIsConsultationModalOpen}>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="text-primary hover:text-primary/80 mr-2"
-                onClick={() => setIsConsultationModalOpen(true)}
-              >
-                <CalendarCheck className="h-6 w-6" />
-                <span className="sr-only">Agendar Consultoria</span>
-              </Button>
-            </ConsultationModal>
+          <div className="flex items-center gap-2">
             <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon">
@@ -49,17 +38,12 @@ export function Header() {
                 </Button>
               </SheetTrigger>
               <SheetContent side="right" className="w-[280px] sm:w-[320px] bg-background p-6">
-                <SheetHeader className="mb-8">
+                <SheetHeader className="mb-8 text-left">
                    <div className="flex justify-between items-center">
                     <Link href="/" className="text-2xl font-bold font-headline gradient-text-animated" onClick={() => setIsSheetOpen(false)}>
                         Astroya
                     </Link>
-                    <SheetClose asChild>
-                      <Button variant="ghost" size="icon">
-                        <X className="h-6 w-6 text-foreground" />
-                        <span className="sr-only">Fechar menu</span>
-                      </Button>
-                    </SheetClose>
+                    {/* O SheetClose aqui foi removido para evitar o "X" duplicado, pois SheetContent já tem um */}
                   </div>
                   <SheetTitle className="sr-only">Menu Principal</SheetTitle>
                 </SheetHeader>
@@ -78,7 +62,18 @@ export function Header() {
                 </nav>
               </SheetContent>
             </Sheet>
-          </>
+            <ConsultationModal open={isConsultationModalOpen} onOpenChange={setIsConsultationModalOpen}>
+              <Button 
+                variant="ghost" // Mantido ghost para um visual limpo de ícone, mas a cor primária deve destacar
+                size="icon" 
+                className="text-primary hover:text-primary/90" // Ajustado hover e removido margin, o gap do flex container cuida disso
+                onClick={() => setIsConsultationModalOpen(true)}
+              >
+                <CalendarCheck className="h-6 w-6" />
+                <span className="sr-only">Agendar Consultoria</span>
+              </Button>
+            </ConsultationModal>
+          </div>
         ) : (
           <div className="flex items-center space-x-3 lg:space-x-4">
             <nav className="space-x-3 lg:space-x-5">
