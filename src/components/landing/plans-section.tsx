@@ -85,9 +85,12 @@ export function PlansSection() {
             key={index}
             className={`
               flex flex-col rounded-xl shadow-2xl transition-all duration-300 md:hover:shadow-primary/40
-              ${plan.featured ? "border-2 border-primary bg-primary/5 glassmorphism-card-darker" : "bg-card/70 backdrop-blur-sm border-border/30"}
               transform hover:-translate-y-2
               ${isMobile ? "flex-shrink-0 w-[85vw] sm:w-[320px] snap-center" : ""}
+              ${plan.featured
+                ? `border-2 border-primary ${isMobile ? 'bg-card/70 backdrop-blur-sm' : 'bg-primary/5 glassmorphism-card-darker'}`
+                : 'bg-card/70 backdrop-blur-sm border-border/30'
+              }
             `}
           >
             <CardHeader className="text-center p-6">
@@ -124,3 +127,4 @@ export function PlansSection() {
     </SectionWrapper>
   );
 }
+
