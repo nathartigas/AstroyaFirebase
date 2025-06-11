@@ -2,11 +2,12 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { HeroSection } from "@/components/landing/hero-section";
 import { AboutSection } from "@/components/landing/about-section";
-import { ServicesShowcaseSection } from "@/components/landing/services-showcase-section";
+import { DifferentialsSection } from "@/components/landing/differentials-section";
 import { WorkflowSection } from "@/components/landing/workflow-section";
-import { SubscriptionBenefitsSection } from "@/components/landing/subscription-benefits-section";
-import { TestimonialsSection } from "@/components/landing/testimonials-section";
+import { PlansSection } from "@/components/landing/plans-section";
+import { PortfolioSection } from "@/components/landing/portfolio-section";
 import { ContactSection } from "@/components/landing/contact-section";
+
 
 export default function Home() {
   return (
@@ -14,11 +15,11 @@ export default function Home() {
       <Header />
       <main className="flex-grow">
         <HeroSection />
-        <AboutSection />
-        <ServicesShowcaseSection />
         <WorkflowSection />
-        <SubscriptionBenefitsSection />
-        <TestimonialsSection />
+        <DifferentialsSection />
+        <PlansSection />
+        <PortfolioSection />
+        <AboutSection />
         <ContactSection />
       </main>
       <Footer />

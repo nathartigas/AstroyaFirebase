@@ -21,6 +21,7 @@ export default {
         md: '768px',
         lg: '1024px',
         xl: '1280px',
+        '2xl': '1400px', // Added for larger screens
       },
     },
     extend: {
@@ -85,6 +86,7 @@ export default {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
+        xl: 'calc(var(--radius) + 4px)', // Added for larger rounding
       },
       keyframes: {
         'accordion-down': {
@@ -103,11 +105,26 @@ export default {
             height: '0',
           },
         },
+        'gradient-animation': {
+          '0%': { 'background-position': '0% 50%' },
+          '50%': { 'background-position': '100% 50%' },
+          '100%': { 'background-position': '0% 50%' },
+        },
+         'subtle-pulse': {
+          '0%, 100%': { opacity: '1' , transform: 'scale(1)'},
+          '50%': { opacity: '0.7', transform: 'scale(1.05)' },
+        }
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'gradient-text': 'gradient-animation 3s linear infinite',
+        'subtle-pulse': 'subtle-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
       },
+      boxShadow: {
+        'primary': '0 10px 15px -3px hsl(var(--primary)/0.3), 0 4px 6px -4px hsl(var(--primary)/0.3)',
+        'secondary': '0 10px 15px -3px hsl(var(--secondary)/0.3), 0 4px 6px -4px hsl(var(--secondary)/0.3)',
+      }
     },
   },
   plugins: [require('tailwindcss-animate')],

@@ -1,53 +1,67 @@
 import { SectionWrapper } from "./section-wrapper";
-import { Card, CardContent } from "@/components/ui/card";
-import { ClipboardList, Settings2, PackageCheck, History, ChevronRight } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { FileText, DraftingCompass, CheckCircle, Rocket, Wrench, ChevronRight } from "lucide-react";
 
 const workflowSteps = [
   {
-    icon: <ClipboardList className="w-8 h-8 text-primary" />,
-    title: "1. Briefing & Discovery",
-    description: "We start by understanding your vision, goals, and target audience to lay a solid foundation.",
+    icon: <FileText className="w-10 h-10 text-primary mb-3" />,
+    title: "Briefing Detalhado",
+    description: "Entendemos sua visão e objetivos para um projeto alinhado.",
   },
   {
-    icon: <Settings2 className="w-8 h-8 text-primary" />,
-    title: "2. Design & Creation",
-    description: "Our experts craft a custom design and develop your high-performance landing page.",
+    icon: <DraftingCompass className="w-10 h-10 text-primary mb-3" />,
+    title: "Prototipagem Ágil",
+    description: "Criamos o design e a estrutura, validando cada etapa com você.",
   },
   {
-    icon: <PackageCheck className="w-8 h-8 text-primary" />,
-    title: "3. Delivery & Launch",
-    description: "Your page goes live after rigorous testing, ready to captivate and convert visitors.",
+    icon: <CheckCircle className="w-10 h-10 text-primary mb-3" />,
+    title: "Aprovação Final",
+    description: "Você revisa e aprova o design final antes do lançamento.",
   },
   {
-    icon: <History className="w-8 h-8 text-primary" />,
-    title: "4. Ongoing Maintenance",
-    description: "We provide continuous support, updates, and optimizations to ensure lasting success.",
+    icon: <Rocket className="w-10 h-10 text-primary mb-3" />,
+    title: "Entrega & Decolagem",
+    description: "Sua landing page no ar, otimizada para performance e conversão.",
+  },
+  {
+    icon: <Wrench className="w-10 h-10 text-primary mb-3" />,
+    title: "Manutenção Contínua",
+    description: "Suporte e atualizações para sua página voar sempre alto.",
   },
 ];
 
 export function WorkflowSection() {
   return (
-    <SectionWrapper id="workflow" className="bg-card">
+    <SectionWrapper id="workflow" className="bg-background">
       <div className="text-center mb-16">
-        <h2 className="text-4xl font-bold mb-4">Our Streamlined Workflow</h2>
-        <p className="text-lg text-foreground/80 max-w-2xl mx-auto">
-          From initial concept to ongoing support, we make the process seamless and efficient.
+        <h2 className="text-4xl font-bold mb-4 gradient-text">Como Pilomos Seu Sucesso</h2>
+        <p className="text-lg text-foreground/80 max-w-3xl mx-auto">
+          Nosso processo é transparente e colaborativo, garantindo que sua landing page seja exatamente o que você precisa para decolar.
         </p>
       </div>
       <div className="relative">
-        <div className="hidden lg:block absolute top-1/2 left-0 right-0 h-1 bg-border -translate-y-1/2"></div>
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+        {/* Desktop horizontal line - hidden on smaller screens */}
+        <div className="hidden lg:block absolute top-1/2 left-0 right-0 h-1 bg-border/50 -translate-y-1/2" style={{ width: 'calc(100% - 10rem)', margin: '0 auto' }}></div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 items-stretch">
           {workflowSteps.map((step, index) => (
-            <div key={index} className="relative flex flex-col items-center">
-              <Card className="w-full text-center p-6 bg-background/50 border-2 border-transparent hover:border-primary/50 transition-colors duration-300 shadow-lg z-10">
-                <CardContent className="p-0">
-                  <div className="flex justify-center mb-4">{step.icon}</div>
-                  <h3 className="text-xl font-bold font-headline mb-2 text-foreground">{step.title}</h3>
+            <div key={index} className="relative flex flex-col items-center text-center lg:text-left">
+              <Card className="w-full h-full flex flex-col bg-card/50 hover:border-primary/70 border-2 border-transparent transition-all duration-300 shadow-lg hover:shadow-primary/20 transform hover:-translate-y-1 z-10">
+                <CardHeader className="items-center lg:items-start">
+                  {step.icon}
+                  <CardTitle className="text-xl font-headline text-foreground">{step.title}</CardTitle>
+                </CardHeader>
+                <CardContent className="flex-grow">
                   <p className="text-foreground/70 text-sm">{step.description}</p>
                 </CardContent>
               </Card>
               {index < workflowSteps.length - 1 && (
-                <ChevronRight className="hidden lg:block absolute top-1/2 right-[-1rem] transform -translate-y-1/2 translate-x-1/2 w-8 h-8 text-primary z-0" />
+                <>
+                  {/* Arrow for desktop view */}
+                  <ChevronRight className="hidden lg:block absolute top-1/2 right-[-1.75rem] transform -translate-y-1/2 translate-x-1/2 w-10 h-10 text-primary z-0" />
+                  {/* Vertical line for mobile/tablet view */}
+                  <div className="lg:hidden w-1 h-8 bg-border/50 my-4"></div>
+                </>
               )}
             </div>
           ))}

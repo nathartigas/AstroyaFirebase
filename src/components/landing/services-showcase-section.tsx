@@ -1,58 +1,61 @@
 import { SectionWrapper } from "./section-wrapper";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Rocket, Palette, ServerCog, Wrench, CreditCard, Zap } from "lucide-react";
+import { Zap, Palette, ShieldCheck, Server, Gem, Clock } from "lucide-react";
 
-const services = [
+const differentials = [
   {
-    icon: <Rocket className="w-10 h-10 mb-4 text-primary" />,
-    title: "Rapid Delivery",
-    description: "Get your custom landing page live in record time. We prioritize speed without compromising quality.",
+    icon: <Zap className="w-12 h-12 mb-4 text-primary" />,
+    title: "Entrega Ultra-Rápida",
+    description: "Sua landing page no ar em até 5 dias úteis. Agilidade é nosso sobrenome.",
   },
   {
-    icon: <Palette className="w-10 h-10 mb-4 text-primary" />,
-    title: "Bespoke Design",
-    description: "Unique, modern designs tailored to your brand identity, ensuring you stand out from the crowd.",
+    icon: <Palette className="w-12 h-12 mb-4 text-primary" />,
+    title: "Design Exclusivo e Sob Medida",
+    description: "Criamos uma identidade visual única que reflete a alma do seu negócio.",
   },
   {
-    icon: <ServerCog className="w-10 h-10 mb-4 text-primary" />,
-    title: "Integrated Hosting",
-    description: "Hassle-free, reliable hosting included. We handle the technical bits so you don't have to.",
+    icon: <ShieldCheck className="w-12 h-12 mb-4 text-primary" />,
+    title: "Manutenção Inclusa, Zero Dor de Cabeça",
+    description: "Atualizações e suporte contínuo para sua página operar sempre no máximo.",
   },
   {
-    icon: <Wrench className="w-10 h-10 mb-4 text-primary" />,
-    title: "Continuous Maintenance",
-    description: "Ongoing support and updates to keep your page secure, fast, and performing optimally.",
+    icon: <Server className="w-12 h-12 mb-4 text-primary" />,
+    title: "Hospedagem de Alta Performance",
+    description: "Deixe a infraestrutura conosco. Sua página segura e veloz, sempre online.",
   },
   {
-    icon: <CreditCard className="w-10 h-10 mb-4 text-primary" />,
-    title: "Flexible Subscriptions",
-    description: "Affordable and scalable plans designed to fit your business needs and budget.",
+    icon: <Gem className="w-12 h-12 mb-4 text-primary" />,
+    title: "Assinatura Mensal Sem Complicações",
+    description: "Planos flexíveis e transparentes para impulsionar seu crescimento.",
   },
   {
-    icon: <Zap className="w-10 h-10 mb-4 text-primary" />,
-    title: "Performance Optimized",
-    description: "Built for speed and conversions, ensuring a seamless experience for your visitors.",
+    icon: <Clock className="w-12 h-12 mb-4 text-primary" />,
+    title: "Foco Total no Seu Core Business",
+    description: "Enquanto pilotamos sua presença online, você foca no que faz de melhor.",
   }
 ];
 
-export function ServicesShowcaseSection() {
+export function DifferentialsSection() {
   return (
-    <SectionWrapper id="services">
-      <div className="text-center mb-12">
-        <h2 className="text-4xl font-bold mb-4">Our Core Services</h2>
-        <p className="text-lg text-foreground/80 max-w-2xl mx-auto">
-          Everything you need for a compelling online presence, bundled into one simple subscription.
+    <SectionWrapper id="differentials" className="bg-gradient-to-br from-background via-purple-900/10 to-orange-500/5">
+      <div className="text-center mb-16">
+        <h2 className="text-4xl font-bold mb-4 gradient-text">Nossos Diferenciais Exclusivos</h2>
+        <p className="text-lg text-foreground/80 max-w-3xl mx-auto">
+          Entregamos mais que uma landing page: fornecemos a plataforma completa para o seu sucesso online, com a vanguarda da tecnologia e design.
         </p>
       </div>
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {services.map((service, index) => (
-          <Card key={index} className="bg-card/50 hover:shadow-xl hover:border-primary/50 transition-all duration-300 transform hover:-translate-y-1">
-            <CardHeader>
-              {service.icon}
-              <CardTitle className="font-headline text-2xl text-foreground">{service.title}</CardTitle>
+        {differentials.map((item, index) => (
+          <Card 
+            key={index} 
+            className="bg-card/60 backdrop-blur-sm border-border/30 hover:border-primary/50 transition-all duration-300 transform hover:-translate-y-2 hover:shadow-primary/20 shadow-xl rounded-xl"
+          >
+            <CardHeader className="items-center text-center">
+              {item.icon}
+              <CardTitle className="font-headline text-2xl text-foreground">{item.title}</CardTitle>
             </CardHeader>
-            <CardContent>
-              <CardDescription className="text-foreground/70 text-base">{service.description}</CardDescription>
+            <CardContent className="text-center">
+              <CardDescription className="text-foreground/70 text-base">{item.description}</CardDescription>
             </CardContent>
           </Card>
         ))}
