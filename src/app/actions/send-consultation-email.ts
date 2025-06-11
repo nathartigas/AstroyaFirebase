@@ -3,8 +3,81 @@
 
 import nodemailer from 'nodemailer';
 import type { ConsultationFormValues } from '@/components/feature/consultation-modal';
-import { format } from "date-fns";
+import { format, parse } from "date-fns";
 import { ptBR } from 'date-fns/locale';
+
+// Função para formatar data e hora para o padrão ICS (YYYYMMDDTHHmmssZ)
+// Exemplo: 20240725T140000Z
+function formatDateToICS(date: Date, time: string): string {
+  // Converte a string de hora (HH:mm) para horas e minutos
+  const [hours, minutes] = time.split(':').map(Number);
+  // Cria uma nova data combinando a data selecionada com a hora selecionada
+  const combinedDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), hours, minutes);
+  // Formata para UTC e remove caracteres não numéricos, exceto T e Z
+  return combinedDate.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+}
+
+function generateICSContent(data: ConsultationFormValues, eventDurationHours: number = 1): string {
+  const {
+    clientName,
+    companyName,
+    clientEmail,
+    companyWebsite,
+    mainChallenge,
+    targetAudience,
+    serviceLandingPage,
+    serviceSEO,
+    serviceMaintenance,
+    preferredDate,
+    preferredTime,
+  } = data;
+
+  const startDateICS = formatDateToICS(preferredDate, preferredTime);
+  
+  const [hours, minutes] = preferredTime.split(':').map(Number);
+  const endDate = new Date(preferredDate.getFullYear(), preferredDate.getMonth(), preferredDate.getDate(), hours + eventDurationHours, minutes);
+  const endDateICS = formatDateToICS(endDate, `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}`);
+
+  const timestamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+  const uid = `${timestamp}-${clientEmail.replace(/[@.]/g, '')}@astroya.com.br`;
+
+  const servicesList = [
+    serviceLandingPage && "Criação de Landing Pages",
+    serviceSEO && "Otimização SEO",
+    serviceMaintenance && "Manutenção Contínua",
+  ].filter(Boolean).join(', ');
+  const servicesText = servicesList.length > 0 ? servicesList : 'Nenhum serviço específico selecionado';
+
+  const description = `Solicitação de Consultoria Astroya:
+Nome do Solicitante: ${clientName}
+Empresa: ${companyName}
+E-mail: ${clientEmail}
+Website: ${companyWebsite || 'Não informado'}
+Principal Desafio: ${mainChallenge}
+Público-Alvo: ${targetAudience}
+Serviços de Interesse: ${servicesText}
+Horário Solicitado: ${format(preferredDate, "PPP", { locale: ptBR })} às ${preferredTime}`;
+
+  return `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Astroya//Agendamento//PT
+CALSCALE:GREGORIAN
+BEGIN:VEVENT
+UID:${uid}
+DTSTAMP:${timestamp}
+DTSTART:${startDateICS}
+DTEND:${endDateICS}
+SUMMARY:Consultoria Astroya: ${companyName} (${clientName})
+DESCRIPTION:${description.replace(/\n/g, '\\n')}
+LOCATION:Online / Videoconferência
+ORGANIZER;CN="Astroya":MAILTO:${process.env.EMAIL_FROM_ADDRESS || process.env.EMAIL_SERVER_USER}
+ATTENDEE;CN="${clientName}";ROLE=REQ-PARTICIPANT:MAILTO:${clientEmail}
+STATUS:TENTATIVE
+SEQUENCE:0
+END:VEVENT
+END:VCALENDAR`;
+}
+
 
 export async function sendConsultationEmailAction(data: ConsultationFormValues) {
   const {
@@ -23,13 +96,20 @@ export async function sendConsultationEmailAction(data: ConsultationFormValues) 
 
   if (!process.env.EMAIL_SERVER_USER || !process.env.EMAIL_SERVER_PASSWORD || !process.env.EMAIL_TO_ADDRESS || !process.env.EMAIL_SERVER_HOST) {
     console.error("Variáveis de ambiente para envio de e-mail não configuradas.");
+    console.log(`EMAIL_SERVER_USER is defined: ${!!process.env.EMAIL_SERVER_USER}`);
+    console.log(`EMAIL_SERVER_PASSWORD is defined: ${!!process.env.EMAIL_SERVER_PASSWORD}`);
+    console.log(`EMAIL_TO_ADDRESS is defined: ${!!process.env.EMAIL_TO_ADDRESS}`);
+    console.log(`EMAIL_SERVER_HOST is defined: ${!!process.env.EMAIL_SERVER_HOST}`);
+    console.log(`EMAIL_SERVER_PORT is defined: ${!!process.env.EMAIL_SERVER_PORT}`);
+    console.log(`EMAIL_SERVER_SECURE is defined: ${!!process.env.EMAIL_SERVER_SECURE}`);
+    console.log(`EMAIL_FROM_ADDRESS is defined: ${!!process.env.EMAIL_FROM_ADDRESS}`);
     return { success: false, message: 'Serviço de e-mail não configurado no servidor. Contate o administrador.' };
   }
 
   const transporter = nodemailer.createTransport({
     host: process.env.EMAIL_SERVER_HOST,
     port: Number(process.env.EMAIL_SERVER_PORT || 587),
-    secure: process.env.EMAIL_SERVER_SECURE === 'true', // true for 465, false for other ports
+    secure: process.env.EMAIL_SERVER_SECURE === 'true',
     auth: {
       user: process.env.EMAIL_SERVER_USER,
       pass: process.env.EMAIL_SERVER_PASSWORD,
@@ -49,6 +129,13 @@ export async function sendConsultationEmailAction(data: ConsultationFormValues) 
   const servicesText = servicesList.length > 0 ? servicesList.join(', ') : 'Nenhum serviço específico selecionado';
   const firstName = clientName.split(' ')[0];
 
+  const icsContent = generateICSContent(data);
+  const icsAttachment = {
+    filename: 'convite_consultoria_astroya.ics',
+    content: icsContent,
+    contentType: 'text/calendar; charset=utf-8; method=REQUEST',
+  };
+
   const adminMailOptions = {
     from: `"Astroya Agendamentos" <${process.env.EMAIL_FROM_ADDRESS || process.env.EMAIL_SERVER_USER}>`,
     to: process.env.EMAIL_TO_ADDRESS,
@@ -58,6 +145,7 @@ export async function sendConsultationEmailAction(data: ConsultationFormValues) 
         <div style="background-color: #f9f9f9; padding: 20px; border-radius: 8px;">
             <h2 style="color: #FF5500; border-bottom: 2px solid #9200BE; padding-bottom: 10px;">Nova Solicitação de Consultoria Recebida</h2>
             <p>Uma nova solicitação de consultoria foi feita através do site Astroya.</p>
+            <p>Um convite de calendário (.ics) está anexado a este e-mail para fácil adição à sua agenda.</p>
 
             <h3 style="color: #8A2BE2; margin-top: 25px;">Detalhes da Solicitação:</h3>
             <ul style="list-style-type: none; padding-left: 0;">
@@ -79,6 +167,7 @@ export async function sendConsultationEmailAction(data: ConsultationFormValues) 
         </div>
       </div>
     `,
+    attachments: [icsAttachment]
   };
 
   const clientMailOptions = {
@@ -91,6 +180,7 @@ export async function sendConsultationEmailAction(data: ConsultationFormValues) 
             <h2 style="color: #FF5500; border-bottom: 2px solid #9200BE; padding-bottom: 10px;">Olá ${firstName}, sua solicitação foi recebida!</h2>
             <p>Obrigado por entrar em contato com a Astroya e solicitar uma consultoria estratégica gratuita.</p>
             <p>Recebemos seus dados e entraremos em contato em breve para confirmar o agendamento e discutir os próximos passos.</p>
+            <p>Enviamos um convite de calendário (.ics) anexado a este e-mail para sua conveniência. Por favor, adicione-o à sua agenda.</p>
 
             <h3 style="color: #8A2BE2; margin-top: 25px;">Detalhes da sua Solicitação:</h3>
             <ul style="list-style-type: none; padding-left: 0;">
@@ -113,24 +203,35 @@ export async function sendConsultationEmailAction(data: ConsultationFormValues) 
         </div>
       </div>
     `,
+    attachments: [icsAttachment]
   };
 
   try {
+    // Remove os console.logs após a depuração
+    // console.log(`EMAIL_SERVER_USER is defined: ${!!process.env.EMAIL_SERVER_USER}`);
+    // console.log(`EMAIL_SERVER_PASSWORD is defined: ${!!process.env.EMAIL_SERVER_PASSWORD}`);
+    // console.log(`EMAIL_TO_ADDRESS is defined: ${!!process.env.EMAIL_TO_ADDRESS}`);
+    // console.log(`EMAIL_SERVER_HOST is defined: ${!!process.env.EMAIL_SERVER_HOST}`);
+    // console.log(`EMAIL_SERVER_PORT is defined: ${!!process.env.EMAIL_SERVER_PORT}`);
+    // console.log(`EMAIL_SERVER_SECURE is defined: ${!!process.env.EMAIL_SERVER_SECURE}`);
+    // console.log(`EMAIL_FROM_ADDRESS is defined: ${!!process.env.EMAIL_FROM_ADDRESS}`);
+
     await transporter.sendMail(adminMailOptions);
     await transporter.sendMail(clientMailOptions);
-    return { success: true, message: 'Sua solicitação foi enviada! Enviamos um e-mail de confirmação para você.' };
-  } catch (error: any) { // Adicionado ':any' para acessar propriedades específicas do erro
+    return { success: true, message: 'Sua solicitação foi enviada! Enviamos um e-mail de confirmação com um convite de calendário para você.' };
+  } catch (error: any) {
     console.error("Falha ao enviar e-mail de consultoria:", error);
     let detailedMessage = 'Houve um problema ao enviar sua solicitação. Por favor, tente novamente ou entre em contato diretamente.';
     
-    // Tenta adicionar mais detalhes do erro à mensagem
     if (error.responseCode) {
       detailedMessage += ` (Código do erro SMTP: ${error.responseCode})`;
-    } else if (error.code) { // Códigos comuns do Nodemailer como 'ECONNECTION', 'EAUTH'
+    } else if (error.code) {
         detailedMessage += ` (Código Nodemailer: ${error.code})`;
     }
 
     return { success: false, message: detailedMessage };
   }
 }
+    
+
     
