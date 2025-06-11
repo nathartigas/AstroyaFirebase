@@ -3,10 +3,10 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
-import { useIsMobile } from "@/hooks/use-mobile"; // Assuming you have this hook
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const navLinks = [
   { href: "#workflow", label: "Como Trabalhamos" },
@@ -35,17 +35,20 @@ export function Header() {
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="w-[280px] sm:w-[320px] bg-background p-6">
-              <div className="flex justify-between items-center mb-8">
-                 <Link href="/" className="text-2xl font-bold font-headline gradient-text-animated" onClick={() => setIsSheetOpen(false)}>
-                    Astroya
+              <SheetHeader className="mb-8">
+                <SheetTitle className="sr-only">Menu Principal</SheetTitle>
+                <div className="flex justify-between items-center">
+                  <Link href="/" className="text-2xl font-bold font-headline gradient-text-animated" onClick={() => setIsSheetOpen(false)}>
+                      Astroya
                   </Link>
-                <SheetClose asChild>
-                   <Button variant="ghost" size="icon">
-                    <X className="h-6 w-6 text-foreground" />
-                    <span className="sr-only">Fechar menu</span>
-                  </Button>
-                </SheetClose>
-              </div>
+                  <SheetClose asChild>
+                    <Button variant="ghost" size="icon">
+                      <X className="h-6 w-6 text-foreground" />
+                      <span className="sr-only">Fechar menu</span>
+                    </Button>
+                  </SheetClose>
+                </div>
+              </SheetHeader>
               <nav className="flex flex-col space-y-5">
                 {navLinks.map((link) => (
                   <SheetClose asChild key={link.href}>
