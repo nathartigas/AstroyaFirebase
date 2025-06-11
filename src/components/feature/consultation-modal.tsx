@@ -222,9 +222,10 @@ export function ConsultationModal({ children, open, onOpenChange }: Consultation
                       <Calendar
                         mode="single"
                         selected={field.value}
-                        onSelect={(date) => {
+                        onSelect={(date: Date | undefined) => {
+                           // Try to close the popover first in case onChange causes issues on mobile
+                           setCalendarOpen(false); 
                            field.onChange(date);
-                           setCalendarOpen(false);
                         }}
                         disabled={(date) => date < new Date(new Date().setDate(new Date().getDate() -1)) } // Disable past dates
                         initialFocus
@@ -252,3 +253,4 @@ export function ConsultationModal({ children, open, onOpenChange }: Consultation
     </Dialog>
   );
 }
+
