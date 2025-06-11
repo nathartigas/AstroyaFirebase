@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, type ReactNode } from 'react';
+import { useState, type ReactNode, useEffect } from 'react';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -35,9 +35,10 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Briefcase, CalendarIcon, Building, Globe, Target, CheckSquare, Rocket, Clock, Mail, User } from "lucide-react";
+import { Briefcase, CalendarIcon, Building, Globe, Target, CheckSquare, Rocket, Clock, Mail, User, Loader2 } from "lucide-react";
 import { cn } from '@/lib/utils';
 import { sendConsultationEmailAction } from '@/app/actions/send-consultation-email';
+import { getBookedSlots } from '@/app/actions/schedule-manager';
 
 const availableTimes = [
   "09:00", "10:00", "11:00", "14:00", "15:00", "16:00", "17:00"
@@ -71,6 +72,8 @@ interface ConsultationModalProps {
 export function ConsultationModal({ children, open, onOpenChange }: ConsultationModalProps) {
   const { toast } = useToast();
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [loadingTimes, setLoadingTimes] = useState(false);
+  const [unavailableTimesForSelectedDate, setUnavailableTimesForSelectedDate] = useState<string[]>([]);
 
   const form = useForm<ConsultationFormValues>({
     resolver: zodResolver(consultationFormSchema),
@@ -87,9 +90,55 @@ export function ConsultationModal({ children, open, onOpenChange }: Consultation
     },
   });
 
+  const selectedDate = form.watch("preferredDate");
+
+  useEffect(() => {
+    async function fetchUnavailableTimes() {
+      if (selectedDate) {
+        setLoadingTimes(true);
+        try {
+          const dateStr = format(selectedDate, 'yyyy-MM-dd');
+          const booked = await getBookedSlots(dateStr);
+          setUnavailableTimesForSelectedDate(booked);
+        } catch (error) {
+          console.error("Erro ao buscar horários: ", error);
+          setUnavailableTimesForSelectedDate([]); // Em caso de erro, assume todos disponíveis
+          toast({
+            title: "Erro ao carregar horários",
+            description: "Não foi possível verificar os horários disponíveis. Tente novamente.",
+            variant: "destructive",
+          });
+        } finally {
+          setLoadingTimes(false);
+        }
+      } else {
+        setUnavailableTimesForSelectedDate([]);
+      }
+    }
+    fetchUnavailableTimes();
+  }, [selectedDate, toast]);
+
+
   async function onSubmit(values: ConsultationFormValues) {
-    form.control.disabled = true; 
+    form.control.disabled = true;
+    setLoadingTimes(true); // Reutilizar para indicar processamento geral
+
     try {
+      // Verificar novamente se o slot está disponível antes de enviar
+      const dateStr = format(values.preferredDate, 'yyyy-MM-dd');
+      const currentBookedSlots = await getBookedSlots(dateStr);
+      if (currentBookedSlots.includes(values.preferredTime)) {
+        toast({
+          title: "Horário Indisponível",
+          description: "Este horário foi reservado enquanto você preenchia o formulário. Por favor, escolha outro.",
+          variant: "destructive",
+        });
+        setUnavailableTimesForSelectedDate(currentBookedSlots); // Atualiza a lista de indisponíveis
+        form.control.disabled = false;
+        setLoadingTimes(false);
+        return;
+      }
+
       const result = await sendConsultationEmailAction(values);
       if (result.success) {
         toast({
@@ -98,6 +147,7 @@ export function ConsultationModal({ children, open, onOpenChange }: Consultation
           variant: "default",
         });
         form.reset();
+        setUnavailableTimesForSelectedDate([]); // Limpa após sucesso
         onOpenChange(false);
       } else {
         toast({
@@ -114,7 +164,8 @@ export function ConsultationModal({ children, open, onOpenChange }: Consultation
         variant: "destructive",
       });
     } finally {
-        form.control.disabled = false; 
+        form.control.disabled = false;
+        setLoadingTimes(false);
     }
   }
 
@@ -281,8 +332,12 @@ export function ConsultationModal({ children, open, onOpenChange }: Consultation
                           mode="single"
                           selected={field.value}
                           onSelect={(date: Date | undefined) => {
+                             if (date) {
+                                field.onChange(date);
+                                // Resetar horário selecionado ao mudar a data
+                                form.setValue('preferredTime', ''); 
+                             }
                              setCalendarOpen(false); 
-                             field.onChange(date);
                           }}
                           disabled={(date) => date < new Date(new Date().setDate(new Date().getDate() -1)) }
                           initialFocus
@@ -299,17 +354,30 @@ export function ConsultationModal({ children, open, onOpenChange }: Consultation
                 name="preferredTime"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center text-foreground/90"><Clock className="mr-2 h-4 w-4 text-primary" />Horário Preferido</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormLabel className="flex items-center text-foreground/90">
+                      <Clock className="mr-2 h-4 w-4 text-primary" />
+                      Horário Preferido
+                      {loadingTimes && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+                    </FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                      value={field.value} // Controlar valor para reset
+                      disabled={!selectedDate || loadingTimes}
+                    >
                       <FormControl>
                         <SelectTrigger className="bg-input text-foreground placeholder:text-muted-foreground rounded-md border-border/50 focus:border-primary">
-                          <SelectValue placeholder="Selecione um horário" />
+                          <SelectValue placeholder={!selectedDate ? "Selecione uma data primeiro" : (loadingTimes ? "Carregando horários..." : "Selecione um horário")} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent className="bg-popover text-popover-foreground">
                         {availableTimes.map(time => (
-                          <SelectItem key={time} value={time}>
-                            {time}
+                          <SelectItem 
+                            key={time} 
+                            value={time}
+                            disabled={unavailableTimesForSelectedDate.includes(time)}
+                          >
+                            {time}{unavailableTimesForSelectedDate.includes(time) ? " (Indisponível)" : ""}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -322,12 +390,23 @@ export function ConsultationModal({ children, open, onOpenChange }: Consultation
 
             <DialogFooter className="pt-4">
               <DialogClose asChild>
-                <Button type="button" variant="outline" className="w-full sm:w-auto" disabled={form.formState.isSubmitting}>
+                <Button type="button" variant="outline" className="w-full sm:w-auto" disabled={form.formState.isSubmitting || loadingTimes}>
                   Cancelar
                 </Button>
               </DialogClose>
-              <Button type="submit" className="w-full sm:w-auto gradient-bg text-primary-foreground font-semibold hover:opacity-90" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting ? "Enviando..." : "Solicitar Consultoria"}
+              <Button 
+                type="submit" 
+                className="w-full sm:w-auto gradient-bg text-primary-foreground font-semibold hover:opacity-90" 
+                disabled={form.formState.isSubmitting || loadingTimes}
+              >
+                {(form.formState.isSubmitting || loadingTimes) ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Enviando...
+                  </>
+                ) : (
+                  "Solicitar Consultoria"
+                )}
               </Button>
             </DialogFooter>
           </form>
@@ -336,5 +415,3 @@ export function ConsultationModal({ children, open, onOpenChange }: Consultation
     </Dialog>
   );
 }
-
-    

@@ -3,17 +3,14 @@
 
 import nodemailer from 'nodemailer';
 import type { ConsultationFormValues } from '@/components/feature/consultation-modal';
-import { format, parse } from "date-fns";
+import { format } from "date-fns";
 import { ptBR } from 'date-fns/locale';
+import { attemptToBookSlot } from './schedule-manager'; // Importar a função de reserva
 
 // Função para formatar data e hora para o padrão ICS (YYYYMMDDTHHmmssZ)
-// Exemplo: 20240725T140000Z
 function formatDateToICS(date: Date, time: string): string {
-  // Converte a string de hora (HH:mm) para horas e minutos
   const [hours, minutes] = time.split(':').map(Number);
-  // Cria uma nova data combinando a data selecionada com a hora selecionada
   const combinedDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), hours, minutes);
-  // Formata para UTC e remove caracteres não numéricos, exceto T e Z
   return combinedDate.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
 }
 
@@ -95,14 +92,14 @@ export async function sendConsultationEmailAction(data: ConsultationFormValues) 
   } = data;
 
   if (!process.env.EMAIL_SERVER_USER || !process.env.EMAIL_SERVER_PASSWORD || !process.env.EMAIL_TO_ADDRESS || !process.env.EMAIL_SERVER_HOST) {
-    console.error("Variáveis de ambiente para envio de e-mail não configuradas.");
-    console.log(`EMAIL_SERVER_USER is defined: ${!!process.env.EMAIL_SERVER_USER}`);
-    console.log(`EMAIL_SERVER_PASSWORD is defined: ${!!process.env.EMAIL_SERVER_PASSWORD}`);
-    console.log(`EMAIL_TO_ADDRESS is defined: ${!!process.env.EMAIL_TO_ADDRESS}`);
-    console.log(`EMAIL_SERVER_HOST is defined: ${!!process.env.EMAIL_SERVER_HOST}`);
-    console.log(`EMAIL_SERVER_PORT is defined: ${!!process.env.EMAIL_SERVER_PORT}`);
-    console.log(`EMAIL_SERVER_SECURE is defined: ${!!process.env.EMAIL_SERVER_SECURE}`);
-    console.log(`EMAIL_FROM_ADDRESS is defined: ${!!process.env.EMAIL_FROM_ADDRESS}`);
+    // console.error("Variáveis de ambiente para envio de e-mail não configuradas.");
+    // console.log(`EMAIL_SERVER_USER is defined: ${!!process.env.EMAIL_SERVER_USER}`);
+    // console.log(`EMAIL_SERVER_PASSWORD is defined: ${!!process.env.EMAIL_SERVER_PASSWORD}`);
+    // console.log(`EMAIL_TO_ADDRESS is defined: ${!!process.env.EMAIL_TO_ADDRESS}`);
+    // console.log(`EMAIL_SERVER_HOST is defined: ${!!process.env.EMAIL_SERVER_HOST}`);
+    // console.log(`EMAIL_SERVER_PORT is defined: ${!!process.env.EMAIL_SERVER_PORT}`);
+    // console.log(`EMAIL_SERVER_SECURE is defined: ${!!process.env.EMAIL_SERVER_SECURE}`);
+    // console.log(`EMAIL_FROM_ADDRESS is defined: ${!!process.env.EMAIL_FROM_ADDRESS}`);
     return { success: false, message: 'Serviço de e-mail não configurado no servidor. Contate o administrador.' };
   }
 
@@ -207,17 +204,18 @@ export async function sendConsultationEmailAction(data: ConsultationFormValues) 
   };
 
   try {
-    // Remove os console.logs após a depuração
-    // console.log(`EMAIL_SERVER_USER is defined: ${!!process.env.EMAIL_SERVER_USER}`);
-    // console.log(`EMAIL_SERVER_PASSWORD is defined: ${!!process.env.EMAIL_SERVER_PASSWORD}`);
-    // console.log(`EMAIL_TO_ADDRESS is defined: ${!!process.env.EMAIL_TO_ADDRESS}`);
-    // console.log(`EMAIL_SERVER_HOST is defined: ${!!process.env.EMAIL_SERVER_HOST}`);
-    // console.log(`EMAIL_SERVER_PORT is defined: ${!!process.env.EMAIL_SERVER_PORT}`);
-    // console.log(`EMAIL_SERVER_SECURE is defined: ${!!process.env.EMAIL_SERVER_SECURE}`);
-    // console.log(`EMAIL_FROM_ADDRESS is defined: ${!!process.env.EMAIL_FROM_ADDRESS}`);
+    const dateStr = format(preferredDate, 'yyyy-MM-dd');
+    const slotBookedSuccessfully = await attemptToBookSlot(dateStr, preferredTime);
+
+    if (!slotBookedSuccessfully) {
+      // Este caso idealmente não deveria acontecer se a verificação no cliente foi feita,
+      // mas é uma salvaguarda para concorrência.
+      return { success: false, message: 'Este horário foi reservado por outra pessoa. Por favor, tente outro.' };
+    }
 
     await transporter.sendMail(adminMailOptions);
     await transporter.sendMail(clientMailOptions);
+    
     return { success: true, message: 'Sua solicitação foi enviada! Enviamos um e-mail de confirmação com um convite de calendário para você.' };
   } catch (error: any) {
     console.error("Falha ao enviar e-mail de consultoria:", error);
@@ -232,6 +230,3 @@ export async function sendConsultationEmailAction(data: ConsultationFormValues) 
     return { success: false, message: detailedMessage };
   }
 }
-    
-
-    
