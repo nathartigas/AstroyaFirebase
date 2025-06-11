@@ -8,8 +8,9 @@ import { ptBR } from 'date-fns/locale';
 
 export async function sendConsultationEmailAction(data: ConsultationFormValues) {
   const {
+    clientName, // Added clientName
     companyName,
-    clientEmail, // Added clientEmail
+    clientEmail,
     companyWebsite,
     mainChallenge,
     targetAudience,
@@ -46,12 +47,13 @@ export async function sendConsultationEmailAction(data: ConsultationFormValues) 
   ].filter(Boolean);
   
   const servicesText = servicesList.length > 0 ? servicesList.join(', ') : 'Nenhum serviço específico selecionado';
+  const firstName = clientName.split(' ')[0]; // Get first name for personalization
 
   // Email para o Administrador/Empresa
   const adminMailOptions = {
     from: `"Astroya Agendamentos" <${process.env.EMAIL_FROM_ADDRESS || process.env.EMAIL_SERVER_USER}>`,
     to: process.env.EMAIL_TO_ADDRESS,
-    subject: `Nova Solicitação de Consultoria Astroya: ${companyName}`,
+    subject: `Nova Solicitação de Consultoria Astroya: ${companyName} (Solicitante: ${clientName})`,
     html: `
       <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
         <div style="background-color: #f9f9f9; padding: 20px; border-radius: 8px;">
@@ -60,6 +62,7 @@ export async function sendConsultationEmailAction(data: ConsultationFormValues) 
             
             <h3 style="color: #8A2BE2; margin-top: 25px;">Detalhes da Solicitação:</h3>
             <ul style="list-style-type: none; padding-left: 0;">
+              <li style="margin-bottom: 8px;"><strong>Nome do Solicitante:</strong> ${clientName}</li>
               <li style="margin-bottom: 8px;"><strong>Empresa:</strong> ${companyName}</li>
               <li style="margin-bottom: 8px;"><strong>E-mail do Solicitante:</strong> ${clientEmail}</li>
               <li style="margin-bottom: 8px;"><strong>Website:</strong> ${companyWebsite ? `<a href="${companyWebsite}" style="color: #FF5500;">${companyWebsite}</a>` : 'Não informado'}</li>
@@ -87,12 +90,13 @@ export async function sendConsultationEmailAction(data: ConsultationFormValues) 
     html: `
       <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
         <div style="background-color: #f9f9f9; padding: 20px; border-radius: 8px;">
-            <h2 style="color: #FF5500; border-bottom: 2px solid #9200BE; padding-bottom: 10px;">Olá ${companyName.split(' ')[0]}, sua solicitação foi recebida!</h2>
+            <h2 style="color: #FF5500; border-bottom: 2px solid #9200BE; padding-bottom: 10px;">Olá ${firstName}, sua solicitação foi recebida!</h2>
             <p>Obrigado por entrar em contato com a Astroya e solicitar uma consultoria estratégica gratuita.</p>
             <p>Recebemos seus dados e entraremos em contato em breve para confirmar o agendamento e discutir os próximos passos.</p>
             
             <h3 style="color: #8A2BE2; margin-top: 25px;">Detalhes da sua Solicitação:</h3>
             <ul style="list-style-type: none; padding-left: 0;">
+              <li style="margin-bottom: 8px;"><strong>Nome:</strong> ${clientName}</li>
               <li style="margin-bottom: 8px;"><strong>Empresa:</strong> ${companyName}</li>
               ${companyWebsite ? `<li style="margin-bottom: 8px;"><strong>Website:</strong> ${companyWebsite}</li>` : ''}
               <li style="margin-bottom: 8px;"><strong>Data e Horário Solicitados:</strong> ${formattedDate} às ${preferredTime}</li>

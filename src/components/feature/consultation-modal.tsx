@@ -35,7 +35,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Briefcase, CalendarIcon, Building, Globe, Target, CheckSquare, Rocket, Clock, Mail } from "lucide-react";
+import { Briefcase, CalendarIcon, Building, Globe, Target, CheckSquare, Rocket, Clock, Mail, User } from "lucide-react";
 import { cn } from '@/lib/utils';
 import { sendConsultationEmailAction } from '@/app/actions/send-consultation-email';
 
@@ -44,6 +44,7 @@ const availableTimes = [
 ];
 
 const consultationFormSchema = z.object({
+  clientName: z.string().min(2, { message: "Nome deve ter pelo menos 2 caracteres." }),
   companyName: z.string().min(2, { message: "Nome da empresa deve ter pelo menos 2 caracteres." }),
   clientEmail: z.string().email({ message: "Por favor, insira um e-mail válido." }),
   companyWebsite: z.string().url({ message: "Por favor, insira uma URL válida." }).optional().or(z.literal("")),
@@ -74,6 +75,7 @@ export function ConsultationModal({ children, open, onOpenChange }: Consultation
   const form = useForm<ConsultationFormValues>({
     resolver: zodResolver(consultationFormSchema),
     defaultValues: {
+      clientName: "",
       companyName: "",
       clientEmail: "",
       companyWebsite: "",
@@ -135,12 +137,12 @@ export function ConsultationModal({ children, open, onOpenChange }: Consultation
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="companyName"
+                name="clientName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center text-foreground/90"><Building className="mr-2 h-4 w-4 text-primary" />Nome da Empresa</FormLabel>
+                    <FormLabel className="flex items-center text-foreground/90"><User className="mr-2 h-4 w-4 text-primary" />Seu Nome</FormLabel>
                     <FormControl>
-                      <Input placeholder="Sua Empresa Inc." {...field} className="bg-input text-foreground placeholder:text-muted-foreground rounded-md border-border/50 focus:border-primary" />
+                      <Input placeholder="Nome Completo" {...field} className="bg-input text-foreground placeholder:text-muted-foreground rounded-md border-border/50 focus:border-primary" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -160,7 +162,21 @@ export function ConsultationModal({ children, open, onOpenChange }: Consultation
                 )}
               />
             </div>
-             <FormField
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="companyName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center text-foreground/90"><Building className="mr-2 h-4 w-4 text-primary" />Nome da Empresa</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Sua Empresa Inc." {...field} className="bg-input text-foreground placeholder:text-muted-foreground rounded-md border-border/50 focus:border-primary" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
                 control={form.control}
                 name="companyWebsite"
                 render={({ field }) => (
@@ -173,6 +189,7 @@ export function ConsultationModal({ children, open, onOpenChange }: Consultation
                   </FormItem>
                 )}
               />
+            </div>
 
             <FormField
               control={form.control}
